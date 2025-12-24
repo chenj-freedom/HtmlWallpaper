@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Rain - By HAISNAP</title>
+    <!-- 引入 Pico.css 作为基础样式 -->
+    <link rel="stylesheet" href="https://hpi-hub.tos-cn-beijing.volces.com/haisnap/cdn/pico.min.css">
+    <style>
+        :root { --bg-color: #000000; }
+        body, html { 
+            margin: 0; padding: 0; 
+            width: 100%; height: 100%; 
+            background: var(--bg-color); 
+            overflow: hidden; 
+        }
+        canvas { 
+            display: block; 
+            width: 100%; height: 100%; 
+        }
+        /* 预留槽位 */
+        #slot-layer { 
+            position: absolute; inset: 0; 
+            pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div id="slot-layer"></div>
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d', { alpha: false }); // 关闭透明通道优化性能
+
+        // 配置 - 保持高清晰度和适中速度
+        const config = {
+            fontSize: 16,            // 字号
+            fontFamily: 'Courier New, monospace',
+            textColor: '#0F0',       // 经典黑客帝国绿
+            highlightColor: '#FFF',  // 头部高亮白
+            bgColor: 'rgba(0, 0, 0, 0.05)', // 拖尾透明度
+            frameInterval: 35        // ~28FPS，控制速度适中且流畅
+        };
+
+        // 经典字符集 (数字+英文+符号)
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz$+-*/=%\"\'#&_(),.;:?!\\|{}<>[]^~';
+        
+        let cols;
+        let drops = [];
+        let lastTime = 0;
+        let w, h;
+
+        // 初始化画布与尺寸
+        const resize = () => {
+            const dpr = window.devicePixelRatio || 1;
+            w = window.innerWidth;
+            h = window.innerHeight;
+            
+            // 处理 Retina 屏幕清晰度
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // 计算列数
+            cols = Math.ceil(w / config.fontSize);
+            
+            // 初始化雨滴位置 (如果是首次加载或列数变化)
+            if (drops.length !== cols) {
+                drops = [];
+                for (let i = 0; i < cols; i++) {
+                    drops[i] = Math.floor(Math.random() * -100); // 随机起始高度
+                }
+            }
+        };
+
+        // 绘制循环
+        const draw = (timestamp) => {
+            requestAnimationFrame(draw);
+
+            // 控制帧率以达到“速度适中”且“清晰”的效果
+            if (timestamp - lastTime < config.frameInterval) return;
+            lastTime = timestamp;
+
+            // 绘制半透明背景以产生拖尾效果
+            ctx.fillStyle = config.bgColor;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.font = 'bold ' + config.fontSize + 'px ' + config.fontFamily;
+            ctx.textAlign = 'center';
+
+            for (let i = 0; i < cols; i++) {
+                // 随机取字符
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                
+                // 坐标计算：保持整数坐标以确保文字渲染清晰
+                const x = i * config.fontSize + (config.fontSize / 2);
+                const y = drops[i] * config.fontSize;
+
+                // 随机高亮头部
+                if (Math.random() > 0.95) {
+                    ctx.fillStyle = config.highlightColor;
+                    ctx.fillText(char, x, y);
+                } else {
+                    ctx.fillStyle = config.textColor;
+                    ctx.fillText(char, x, y);
+                }
+
+                // 雨滴复位逻辑
+                if (y > h && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                
+                // 整数步进，确保下一次绘制依然清晰
+                drops[i]++;
+            }
+        };
+
+        // 启动
+        window.addEventListener('resize', resize);
+        resize();
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>
